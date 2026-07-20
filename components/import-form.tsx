@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { extractConversationsFromZip, type ZipExtractionStats } from "@/lib/imports/zip";
+import { chunkImportPayload } from "@/lib/imports/chunk";
 
 type ImportResult = {
   platform: string;
@@ -29,6 +30,7 @@ export function ImportForm() {
   const [zipStats, setZipStats] = useState<ZipExtractionStats | null>(null);
   const [busy, setBusy] = useState(false);
   const [unzipping, setUnzipping] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,17 +75,48 @@ export function ImportForm() {
     setError(null);
     setResult(null);
     try {
-      const res = await fetch("/api/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data, platform: platform || undefined }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json.error ?? "Import failed — try again.");
-        return;
+      // Large exports (Grok/X account dumps especially) can blow past the
+      // ~4.5MB request body limit Vercel enforces on serverless functions,
+      // so oversized payloads go out as several smaller sequential imports.
+      const chunks = chunkImportPayload(data);
+      let imported = 0;
+      let skipped = 0;
+      let messages = 0;
+      let lastJson: ImportResult | null = null;
+
+      for (let i = 0; i < chunks.length; i++) {
+        if (chunks.length > 1) setProgress(`Importing batch ${i + 1} of ${chunks.length}…`);
+        const res = await fetch("/api/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: chunks[i], platform: platform || undefined }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          setError(
+            imported > 0
+              ? `Imported ${imported} conversation${imported === 1 ? "" : "s"} before hitting an error: ${json.error ?? "import failed"}`
+              : (json.error ?? "Import failed — try again.")
+          );
+          return;
+        }
+        imported += json.imported;
+        skipped += json.skipped;
+        messages += json.messages;
+        lastJson = json;
       }
-      setResult(json);
+
+      setResult(
+        chunks.length > 1 && lastJson
+          ? {
+              ...lastJson,
+              imported,
+              skipped,
+              messages,
+              message: `Imported ${imported} conversation${imported === 1 ? "" : "s"} (${messages} messages) from ${lastJson.platform} across ${chunks.length} batches. Open /chat to continue them on any backend.`,
+            }
+          : lastJson
+      );
       setPasted("");
       setFileData(null);
       setFileName(null);
@@ -92,6 +125,7 @@ export function ImportForm() {
       setError("Network hiccup — your export is safe locally, try again.");
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -163,7 +197,11 @@ export function ImportForm() {
       </div>
 
       <Button size="lg" onClick={runImport} disabled={busy || unzipping || !(fileData ?? pasted).trim()}>
-        {unzipping ? "Unzipping your export…" : busy ? "Reconstructing your threads…" : "Import into my vault"}
+        {unzipping
+          ? "Unzipping your export…"
+          : busy
+            ? (progress ?? "Reconstructing your threads…")
+            : "Import into my vault"}
       </Button>
 
       {result && (
