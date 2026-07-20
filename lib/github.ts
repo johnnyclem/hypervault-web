@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 
 
 export function starRepo(): string {
-  return (process.env.GITHUB_STAR_REPO ?? "johnnyclem/hypervault").trim();
+  return (process.env.GITHUB_STAR_REPO ?? "johnnyclem/hypervault-web").trim();
 }
 
 function githubHeaders(accept = "application/vnd.github+json"): Record<string, string> {

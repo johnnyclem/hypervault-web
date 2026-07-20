@@ -12,7 +12,7 @@ export function SiteFooter() {
           <Link href="/cool" className="hover:text-foreground">
             vault.cool
           </Link>
-          <a href="https://github.com/johnnyclem/hypervault" className="hover:text-foreground">
+          <a href="https://github.com/johnnyclem/hypervault-web" className="hover:text-foreground">
             GitHub
           </a>
         </nav>

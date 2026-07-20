@@ -45,7 +45,7 @@ describe("starRepo", () => {
 
   it("defaults to the HyperVault repo", () => {
     delete process.env.GITHUB_STAR_REPO;
-    expect(starRepo()).toBe("johnnyclem/hypervault");
+    expect(starRepo()).toBe("johnnyclem/hypervault-web");
   });
 
   it("honors an override and trims it", () => {

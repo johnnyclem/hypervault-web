@@ -1,6 +1,6 @@
 # hypervault-mcp
 
-MCP server for [HyperVault](https://github.com/johnnyclem/hypervault) — lets any
+MCP server for [HyperVault](https://github.com/johnnyclem/hypervault-web) — lets any
 MCP-capable agent save artifacts to a user's vault and claim vanity subdomains.
 
 Built with [FastMCP](https://gofastmcp.com).
