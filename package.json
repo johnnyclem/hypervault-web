@@ -1,0 +1,44 @@
+{
+  "name": "hypervault",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HyperVault — your personal flight deck for everything your AI creates.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.47.10",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "diff": "^9.0.0",
+    "fflate": "^0.8.3",
+    "lucide-react": "^0.469.0",
+    "mammoth": "^1.12.0",
+    "next": "^15.1.3",
+    "onnxruntime-web": "^1.27.0",
+    "pocket-tts-js": "0.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-force-graph-2d": "^1.29.1",
+    "tailwind-merge": "^2.6.0",
+    "unpdf": "^1.6.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5",
+    "vitest": "^4.1.10"
+  },
+  "optionalDependencies": {
+    "onnxruntime-node": "^1.20.0"
+  }
+}
