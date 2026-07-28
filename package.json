@@ -20,7 +20,7 @@
     "fflate": "^0.8.3",
     "lucide-react": "^0.469.0",
     "mammoth": "^1.12.0",
-    "next": "^15.1.3",
+    "next": "^15.5.21",
     "onnxruntime-web": "^1.27.0",
     "pocket-tts-js": "0.1.0",
     "react": "^19.0.0",
