@@ -25,6 +25,13 @@ all if the key isn't set. This is what makes it safe to bind
 full, unauthenticated access to the operator's vault (including
 `delete_vault_item` and `write_artifact`). STDIO mode is unaffected.
 
+## Tests
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
 ## Tools
 
 | Tool | What it does |

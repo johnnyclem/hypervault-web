@@ -10,6 +10,9 @@ dependencies = [
     "httpx>=0.27.0",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
 [project.scripts]
 hypervault-mcp = "hypervault_mcp.server:main"
 
