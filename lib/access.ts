@@ -24,7 +24,7 @@ export async function getAccess(): Promise<Access> {
   if (res.error) res = await checkAccess();
   if (res.error) {
     console.error("getAccess: account_access check failed", res.error);
-    return { user, approved: true, isAdmin };
+    return { user, approved: false, isAdmin };
   }
   return { user, approved: Boolean(res.data), isAdmin };
 }
