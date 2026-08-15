@@ -124,6 +124,34 @@ describe("McpHttpClient", () => {
     });
   });
 
+  it("requests fetch with redirect: 'error' so servers can't SSRF via a 3xx hop", async () => {
+    let seenInit: RequestInit | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        seenInit = init;
+        return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: {} }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      })
+    );
+    const client = new McpHttpClient("http://mcp.test/mcp");
+    await client.initialize();
+    expect(seenInit?.redirect).toBe("error");
+  });
+
+  it("surfaces a redirect attempt as a normal reachability error, not a crash", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      })
+    );
+    const client = new McpHttpClient("http://mcp.test/mcp");
+    await expect(client.initialize()).rejects.toThrow(/Could not reach/);
+  });
+
   it("raises McpAuthError with the challenge on a 401", async () => {
     vi.stubGlobal(
       "fetch",
