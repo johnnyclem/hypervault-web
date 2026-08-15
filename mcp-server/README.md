@@ -8,7 +8,7 @@ Built with [FastMCP](https://gofastmcp.com).
 ## Install & run
 
 ```bash
-pip install -e .          # from this directory (or: uv pip install -e .)
+pip install -e .          # from this directory (or: uv sync, using the checked-in uv.lock)
 
 export HYPERVAULT_API_KEY=hv_...            # create one in the web dashboard (/vault)
 export HYPERVAULT_API_URL=https://hypervault.store   # optional; defaults to hypervault.store

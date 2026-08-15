@@ -145,6 +145,8 @@ vite.config.ts.timestamp-*
 # Python
 __pycache__/
 *.egg-info/
+.venv/
+.pytest_cache/
 .vercel
 .env*
 !.env.example
