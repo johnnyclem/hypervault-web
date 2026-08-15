@@ -3,6 +3,7 @@ import { resolveApiIdentity } from "@/lib/api-auth";
 import { saveArtifactCore } from "@/lib/artifacts/save";
 import { detectJsx, wrapJsxAsHtml } from "@/lib/jsx";
 import { injectSourcePromptMeta } from "@/lib/pwa";
+import { rateLimit } from "@/lib/ratelimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeVisibility } from "@/lib/visibility";
 
@@ -12,6 +13,11 @@ const MAX_SOURCE_PROMPT_CHARS = 10_000;
 export async function POST(req: NextRequest) {
   const auth = await resolveApiIdentity(req);
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  const limited = rateLimit(`save:${auth.identity.userId}`, 30, 60_000);
+  if (!limited.ok) {
+    return NextResponse.json({ error: "Rate limit reached — try again in a minute." }, { status: 429 });
+  }
 
   let body: Record<string, unknown>;
   try {

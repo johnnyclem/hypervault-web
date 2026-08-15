@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveApiIdentity } from "@/lib/api-auth";
 import { parseExport } from "@/lib/imports";
+import { rateLimit } from "@/lib/ratelimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const maxDuration = 60;
@@ -11,6 +12,13 @@ const MESSAGE_BATCH = 500;
 export async function POST(req: NextRequest) {
   const auth = await resolveApiIdentity(req);
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  // A single large export can legitimately arrive as ~15 sequential chunked
+  // POSTs (see lib/imports/chunk.ts) — keep headroom above that.
+  const limited = rateLimit(`chat-import:${auth.identity.userId}`, 30, 60_000);
+  if (!limited.ok) {
+    return NextResponse.json({ error: "Import rate limit reached — try again in a minute." }, { status: 429 });
+  }
 
   let body: Record<string, unknown>;
   try {
