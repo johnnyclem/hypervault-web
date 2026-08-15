@@ -12,6 +12,14 @@ Run over STDIO (local agents):
 
 Run over HTTP (web agents):
     hypervault-mcp --transport http --host 0.0.0.0 --port 8787
+
+    HTTP mode requires HYPERVAULT_API_KEY to be set — the same key doubles
+    as the bearer token callers must present (Authorization: Bearer <key>)
+    to reach any tool. Without it, anyone who can reach the port would get
+    full access to the operator's vault (delete_vault_item, write_artifact,
+    forget_memory, ...), so the server refuses to start in HTTP mode
+    without it. STDIO mode is unaffected (FastMCP never applies auth checks
+    to stdio, matching its single-local-process trust model).
 """
 
 from __future__ import annotations
@@ -24,13 +32,30 @@ from typing import Any
 
 import httpx
 from fastmcp import FastMCP
+from fastmcp.server.auth.providers.jwt import StaticTokenVerifier
 
 DEFAULT_API_URL = "https://hypervault.store"
 API_KEY_HEADER = "X-HyperVault-Key"
 SOURCE_PROMPT_META_NAME = "hypervault-source-prompt"
 
+
+def _http_auth_provider() -> StaticTokenVerifier | None:
+    """Gate the HTTP transport behind the same key used to call the backend.
+
+    Ignored entirely by STDIO transport (FastMCP skips auth checks there).
+    Returns None when HYPERVAULT_API_KEY isn't set yet; main() refuses to
+    start the HTTP transport in that case rather than silently running it
+    open.
+    """
+    api_key = os.environ.get("HYPERVAULT_API_KEY", "").strip()
+    if not api_key:
+        return None
+    return StaticTokenVerifier(tokens={api_key: {"client_id": "hypervault-mcp-caller", "scopes": []}})
+
+
 mcp = FastMCP(
     name="HyperVault",
+    auth=_http_auth_provider(),
     instructions=(
         "Save anything you create (HTML pages, React/JSX components, reports, "
         "games) permanently to the user's HyperVault, and claim memorable "
@@ -918,6 +943,14 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.transport == "http":
+        if mcp.auth is None:
+            raise SystemExit(
+                "HYPERVAULT_API_KEY must be set before running --transport http. "
+                "It doubles as the bearer token callers must present "
+                "(Authorization: Bearer <key>) to reach any tool — without it, "
+                "anyone who can reach this port would get full access to your "
+                "vault."
+            )
         mcp.run(transport="http", host=args.host, port=args.port)
     else:
         mcp.run()

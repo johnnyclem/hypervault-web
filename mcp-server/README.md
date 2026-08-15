@@ -17,6 +17,14 @@ hypervault-mcp                                # STDIO (local agents)
 hypervault-mcp --transport http --port 8787   # HTTP (web agents)
 ```
 
+In HTTP mode, `HYPERVAULT_API_KEY` also gates the transport itself: every
+request must carry `Authorization: Bearer <the same key>`, or it's rejected
+with 401 before reaching any tool. The server refuses to start over HTTP at
+all if the key isn't set. This is what makes it safe to bind
+`--host 0.0.0.0` — without it, anyone who could reach the port would get
+full, unauthenticated access to the operator's vault (including
+`delete_vault_item` and `write_artifact`). STDIO mode is unaffected.
+
 ## Tools
 
 | Tool | What it does |
