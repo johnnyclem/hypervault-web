@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveApiIdentity } from "@/lib/api-auth";
 import { encryptionAvailable, encryptSecret } from "@/lib/backends/crypto";
+import { rateLimit } from "@/lib/ratelimit";
 import { introspectMcpServer } from "@/lib/smallchat/introspect";
 import { parseHeaders, publicServer, serverColumns } from "@/lib/smallchat/server-rows";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -35,6 +36,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const auth = await resolveApiIdentity(req);
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  const limited = rateLimit(`mcp-servers:${auth.identity.userId}`, 20, 60_000);
+  if (!limited.ok) {
+    return NextResponse.json({ error: "Rate limit reached — try again in a minute." }, { status: 429 });
+  }
 
   let body: Record<string, unknown>;
   try {

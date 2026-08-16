@@ -8,13 +8,28 @@ Built with [FastMCP](https://gofastmcp.com).
 ## Install & run
 
 ```bash
-pip install -e .          # from this directory (or: uv pip install -e .)
+pip install -e .          # from this directory (or: uv sync, using the checked-in uv.lock)
 
 export HYPERVAULT_API_KEY=hv_...            # create one in the web dashboard (/vault)
 export HYPERVAULT_API_URL=https://hypervault.store   # optional; defaults to hypervault.store
 
 hypervault-mcp                                # STDIO (local agents)
 hypervault-mcp --transport http --port 8787   # HTTP (web agents)
+```
+
+In HTTP mode, `HYPERVAULT_API_KEY` also gates the transport itself: every
+request must carry `Authorization: Bearer <the same key>`, or it's rejected
+with 401 before reaching any tool. The server refuses to start over HTTP at
+all if the key isn't set. This is what makes it safe to bind
+`--host 0.0.0.0` — without it, anyone who could reach the port would get
+full, unauthenticated access to the operator's vault (including
+`delete_vault_item` and `write_artifact`). STDIO mode is unaffected.
+
+## Tests
+
+```bash
+pip install -e ".[dev]"
+pytest
 ```
 
 ## Tools

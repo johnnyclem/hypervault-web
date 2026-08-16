@@ -30,6 +30,7 @@ legendary address like `you.vault.cool`.
 | `mcp-server/` | `hypervault-mcp`, a Python FastMCP server so agents can save artifacts directly |
 | `public/icons/` | PWA icons used by installable artifacts |
 | `docs/mobile/` | Engineering spec + full PRD set for the native mobile client (iOS/Android) — on-device inference, BYO LLM, and full web/API/MCP parity |
+| [`docs/audit-report.md`](docs/audit-report.md) | Security & architecture audit — findings, fixes, dependency upgrades, and recommended next steps |
 
 ## Native mobile client
 

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveApiIdentity } from "@/lib/api-auth";
+import { rateLimit } from "@/lib/ratelimit";
 import { CompileError, compileToolkit } from "@/lib/smallchat/compile";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -8,6 +9,11 @@ export const maxDuration = 300;
 export async function POST(req: NextRequest) {
   const auth = await resolveApiIdentity(req);
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  const limited = rateLimit(`toolkits-compile:${auth.identity.userId}`, 10, 60_000);
+  if (!limited.ok) {
+    return NextResponse.json({ error: "Rate limit reached — try again in a minute." }, { status: 429 });
+  }
 
   let body: Record<string, unknown> = {};
   try {

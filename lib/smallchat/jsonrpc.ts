@@ -89,6 +89,7 @@ export class McpHttpClient {
         headers,
         body: JSON.stringify(body),
         signal: controller.signal,
+        redirect: "error",
       });
       const session = res.headers.get("mcp-session-id");
       if (session) this.sessionId = session;

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveApiIdentity } from "@/lib/api-auth";
+import { rateLimit } from "@/lib/ratelimit";
 import { sendChat } from "@/lib/backends/chat";
 import { decryptSecret } from "@/lib/backends/crypto";
 import type { CanonicalMessage } from "@/lib/chat/canonical";
@@ -34,6 +35,11 @@ const HISTORY_LIMIT_COMPACTED = 1_000;
 export async function POST(req: NextRequest) {
   const auth = await resolveApiIdentity(req);
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  const limited = rateLimit(`chat:${auth.identity.userId}`, 30, 60_000);
+  if (!limited.ok) {
+    return NextResponse.json({ error: "Rate limit reached — try again in a minute." }, { status: 429 });
+  }
 
   let body: Record<string, unknown>;
   try {

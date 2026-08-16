@@ -1,5 +1,6 @@
 
 import type { JSONSchemaType, ProviderManifest } from "@/lib/vendor/smallchat/core/types";
+import { isBlockedHost } from "@/lib/ingest/web";
 import { McpAuthError, McpHttpClient, McpHttpError, isDeadEndpointStatus } from "@/lib/smallchat/jsonrpc";
 
 export type IntrospectedTool = {
@@ -17,6 +18,19 @@ export async function introspectMcpServer(
   url: string,
   headers?: Record<string, string>
 ): Promise<IntrospectResult> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { ok: false, error: "That doesn't look like a valid URL." };
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { ok: false, error: "Only http(s) MCP server URLs are supported." };
+  }
+  if (isBlockedHost(parsed.hostname)) {
+    return { ok: false, error: "That URL points at a private or local address, which can't be used as an MCP server." };
+  }
+
   try {
     const client = new McpHttpClient(url, headers ?? {});
     const { serverName } = await client.initialize();

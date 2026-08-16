@@ -12,25 +12,98 @@ Run over STDIO (local agents):
 
 Run over HTTP (web agents):
     hypervault-mcp --transport http --host 0.0.0.0 --port 8787
+
+    HTTP mode requires HYPERVAULT_API_KEY to be set — the same key doubles
+    as the bearer token callers must present (Authorization: Bearer <key>)
+    to reach any tool. Without it, anyone who can reach the port would get
+    full access to the operator's vault (delete_vault_item, write_artifact,
+    forget_memory, ...), so the server refuses to start in HTTP mode
+    without it. STDIO mode is unaffected (FastMCP never applies auth checks
+    to stdio, matching its single-local-process trust model).
 """
 
 from __future__ import annotations
 
 import argparse
 import html as html_module
+import ipaddress
 import os
 import re
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 from fastmcp import FastMCP
+from fastmcp.server.auth.providers.jwt import StaticTokenVerifier
 
 DEFAULT_API_URL = "https://hypervault.store"
 API_KEY_HEADER = "X-HyperVault-Key"
 SOURCE_PROMPT_META_NAME = "hypervault-source-prompt"
 
+
+def _http_auth_provider() -> StaticTokenVerifier | None:
+    """Gate the HTTP transport behind the same key used to call the backend.
+
+    Ignored entirely by STDIO transport (FastMCP skips auth checks there).
+    Returns None when HYPERVAULT_API_KEY isn't set yet; main() refuses to
+    start the HTTP transport in that case rather than silently running it
+    open.
+    """
+    api_key = os.environ.get("HYPERVAULT_API_KEY", "").strip()
+    if not api_key:
+        return None
+    return StaticTokenVerifier(tokens={api_key: {"client_id": "hypervault-mcp-caller", "scopes": []}})
+
+
+def _is_blocked_host(hostname: str) -> bool:
+    """Reject hostnames pointing at private/local/link-local addresses.
+
+    Mirrors lib/ingest/web.ts's isBlockedHost() — used wherever this server
+    fetches a caller-supplied URL directly, to avoid SSRF against internal
+    services or cloud metadata endpoints.
+    """
+    h = hostname.lower().rstrip(".")
+    if not h or h == "localhost" or h.endswith(".localhost") or h.endswith(".local") or h.endswith(".internal"):
+        return True
+    try:
+        ip = ipaddress.ip_address(h)
+    except ValueError:
+        return False
+    return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_unspecified
+
+
+def _fetch_public_url(url: str, max_redirects: int = 5) -> httpx.Response:
+    """GET a caller-supplied URL, re-validating the host on every redirect hop.
+
+    Used only for the extract_source_prompt legacy fallback, where the
+    caller (an agent, possibly steered by prompt injection) supplies an
+    arbitrary URL. A single upfront host check isn't enough — the target
+    server could 3xx to an internal address after the check passes — so
+    redirects are followed manually with isBlockedHost-equivalent
+    validation at each hop, instead of trusting httpx's built-in
+    follow_redirects to do it transparently.
+    """
+    target = url
+    for _ in range(max_redirects + 1):
+        parsed = urlparse(target)
+        if parsed.scheme not in ("http", "https"):
+            raise HyperVaultError("Only http(s) URLs can be fetched.")
+        if _is_blocked_host(parsed.hostname or ""):
+            raise HyperVaultError("That URL points at a private or local address, which can't be fetched.")
+        response = httpx.get(target, follow_redirects=False, timeout=30.0)
+        if response.is_redirect:
+            location = response.headers.get("location")
+            if not location:
+                return response
+            target = str(httpx.URL(target).join(location))
+            continue
+        return response
+    raise HyperVaultError("Too many redirects — gave up fetching that URL.")
+
+
 mcp = FastMCP(
     name="HyperVault",
+    auth=_http_auth_provider(),
     instructions=(
         "Save anything you create (HTML pages, React/JSX components, reports, "
         "games) permanently to the user's HyperVault, and claim memorable "
@@ -765,7 +838,7 @@ def extract_source_prompt(url: str) -> dict[str, Any]:
         pass
 
     try:
-        response = httpx.get(cleaned, follow_redirects=True, timeout=30.0)
+        response = _fetch_public_url(cleaned)
         response.raise_for_status()
     except httpx.HTTPError as exc:
         raise HyperVaultError(
@@ -918,6 +991,14 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.transport == "http":
+        if mcp.auth is None:
+            raise SystemExit(
+                "HYPERVAULT_API_KEY must be set before running --transport http. "
+                "It doubles as the bearer token callers must present "
+                "(Authorization: Bearer <key>) to reach any tool — without it, "
+                "anyone who can reach this port would get full access to your "
+                "vault."
+            )
         mcp.run(transport="http", host=args.host, port=args.port)
     else:
         mcp.run()

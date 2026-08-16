@@ -106,4 +106,16 @@ describe("POST /api/mcp-servers/preview", () => {
     expect(data.dead).toBe(true);
     expect(marked).toHaveLength(0);
   });
+
+  it("rate-limits repeated calls from the same identity", async () => {
+    let sawLimit = false;
+    for (let i = 0; i < 25; i++) {
+      const res = await POST(req({ url: `https://mcp.example.com/mcp?i=${i}` }));
+      if (res.status === 429) {
+        sawLimit = true;
+        break;
+      }
+    }
+    expect(sawLimit).toBe(true);
+  });
 });
