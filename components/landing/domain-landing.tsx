@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { DomainTheme } from "@/lib/themes";
+import { TruthSpotlight } from "./truth-spotlight";
 
 const EXAMPLE_SUBDOMAINS = ["nova", "atlas", "kai", "merlin"];
 
@@ -76,6 +77,11 @@ export function DomainLanding({
             {brand ?? domain}
           </Link>
           <nav className="flex items-center gap-2">
+            <Link href="/truth">
+              <Button variant="ghost" size="sm" className="lp-btn shadow-none">
+                Truth
+              </Button>
+            </Link>
             <Link href="/upgrade">
               <Button variant="ghost" size="sm" className="lp-btn shadow-none">
                 Pricing
@@ -139,8 +145,16 @@ export function DomainLanding({
             >
               See plans →
             </Link>
+            <Link
+              href="#truth"
+              className="text-sm font-semibold text-accent underline-offset-4 hover:underline"
+            >
+              Try the truth ledger ↓
+            </Link>
           </div>
         </section>
+
+        <TruthSpotlight />
 
         <section className="grid gap-6 pb-24 sm:grid-cols-3">
           {HOW_IT_WORKS.map((item) => (
@@ -209,6 +223,9 @@ export function DomainLanding({
             {domain} is part of HyperVault — a place to store your AI stuff.
           </p>
           <nav className="flex gap-5">
+            <Link href="/truth" className="hover:text-foreground">
+              Truth ledger
+            </Link>
             <Link href="/upgrade" className="hover:text-foreground">
               Pricing
             </Link>

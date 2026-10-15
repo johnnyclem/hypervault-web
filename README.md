@@ -51,6 +51,25 @@ authenticated the same way the rest of the API is:
   using HyperVault's wiki recall, smart context, and memory-sync (context
   assembles, the model generates on device, turns persists).
 
+## Truth Ledger playground
+
+[`/truth`](app/truth/page.tsx) is a public, interactive model of the Truth
+Ledger v2 rules that HyperVault's hosted ledgers enforce, and the landing page
+features it right under the hero. It runs entirely in the browser with nothing
+saved: pick an identity (a person or one of three agents), play the nine-act
+guided story or write your own claims, and watch the ledger, the review docket,
+the events feed, the context block a model would see, the warn-on-write pass
+and the hash-chained JSONL stream respond.
+
+- `lib/truth-demo/ledger.ts` is the pure model: TB/UV entries, status as a fold
+  over TRANSITION lines, standing derived from pinned premises, approvals that
+  promote only with a person plus evidence, three-session nomination, contempt
+  of corpus, sticky strikes, and the `[TB]` / `[UV — UNVERIFIED]` markers.
+- `components/truth-demo/truth-playground.tsx` is the UI; the landing page
+  embeds its `spotlight` variant from `components/landing/truth-spotlight.tsx`.
+- The real implementation is `@stenographer/core/truth-format` plus
+  HyperVault's `/api/truth/*` routes, review session and MCP tools.
+
 ## Feature map (per the PRD collection)
 
 - **Core web app** — homepage with the flight-deck hero, `/upgrade` pricing +
